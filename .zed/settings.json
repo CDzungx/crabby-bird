@@ -1,0 +1,80 @@
+{
+  // Enable format on save with language server
+  "format_on_save": "on",
+
+  // Rust-specific language settings
+  "languages": {
+    "Rust": {
+      "formatter": "language_server",
+      "format_on_save": "on",
+      "code_actions_on_format": {
+        "source.organizeImports": true
+      },
+      "hard_tabs": false,
+      "tab_size": 4,
+      "preferred_line_length": 100,
+      "soft_wrap": "preferred_line_length"
+    }
+  },
+
+  // LSP configuration for rust-analyzer
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        // Enable experimental diagnostics for better code analysis
+        "diagnostics": {
+          "experimental": {
+            "enable": true
+          }
+        },
+
+        // Inlay hints configuration
+        "inlayHints": {
+          "maxLength": null,
+          "lifetimeElisionHints": {
+            "enable": "skip_trivial",
+            "useParameterNames": true
+          },
+          "closureReturnTypeHints": {
+            "enable": "always"
+          },
+          "parameterHints": {
+            "enable": true
+          },
+          "typeHints": {
+            "enable": true
+          }
+        },
+
+        // Cargo configuration
+        "cargo": {
+          "allTargets": true,
+          "buildScripts": {
+            "enable": true
+          }
+        },
+
+        // Check on save settings
+        "checkOnSave": {
+          "enable": true,
+          "command": "clippy",
+          "extraArgs": ["--all-targets"]
+        },
+
+        // Rust analyzer target directory
+        "rust": {
+          "analyzerTargetDir": true
+        }
+      }
+    }
+  },
+
+  // Additional editor settings for better Rust development
+  "show_whitespaces": "selection",
+  "remove_trailing_whitespace_on_save": true,
+  "ensure_final_newline_on_save": true,
+  "indent_guides": {
+    "enabled": true,
+    "coloring": "indent_aware"
+  }
+}

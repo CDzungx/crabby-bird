@@ -1,0 +1,50 @@
+# Edition and style configuration
+edition = "2021"
+style_edition = "2024"
+
+# Basic formatting preferences
+chain_width = 50
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+newline_style = "Unix"
+
+# Import organization (community favorite)
+reorder_imports = true
+reorder_modules = true
+group_imports = "StdExternalCrate"
+imports_granularity = "Crate"
+
+# Code structure formatting
+use_small_heuristics = "Default"
+binop_separator = "Front"
+remove_nested_parens = true
+normalize_comments = true
+normalize_doc_attributes = true
+
+# Function and control flow formatting
+fn_params_layout = "Tall"
+brace_style = "SameLineWhere"
+control_brace_style = "AlwaysSameLine"
+trailing_comma = "Vertical"
+match_block_trailing_comma = true
+
+# String and macro formatting
+format_strings = true
+format_macro_matchers = true
+format_code_in_doc_comments = true
+
+# Comment formatting (heavily requested by community)
+comment_width = 80
+wrap_comments = true
+doc_comment_code_block_width = 100
+
+# Advanced formatting
+condense_wildcard_suffixes = false
+force_explicit_abi = true
+hex_literal_case = "Preserve"
+use_field_init_shorthand = true
+
+# Struct and enum alignment
+struct_field_align_threshold = 0
+enum_discrim_align_threshold = 0
