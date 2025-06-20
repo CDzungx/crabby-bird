@@ -1,0 +1,135 @@
+# This workflow is triggered when a new version tag (e.g., v0.1.0) is pushed.
+# It builds the game for Windows, macOS, and Linux, packages the executables
+# with the assets folder, and creates a new GitHub Release with the zipped
+# files attached.
+
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  CARGO_TERM_COLOR: always
+  # The name of the executable binary.
+  BINARY_NAME: crabby-bird
+
+jobs:
+  # The 'build' job compiles the game for each target platform.
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Defines the build matrix for each platform.
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset_name_suffix: linux
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_name_suffix: windows
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset_name_suffix: macos
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Use the nightly toolchain as specified in rust-toolchain.toml.
+          toolchain: nightly
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwayland-dev libxkbcommon-dev libasound2-dev pkg-config libudev-dev build-essential mold
+
+      - name: Set RUSTFLAGS for Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: echo "RUSTFLAGS=-C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build binary
+        run: cargo build --profile release-native --target ${{ matrix.target }}
+
+      - name: Get Package Version
+        id: get_version
+        shell: bash
+        run: |
+          # Extracts the version from Cargo.toml and sets it as an output.
+          VERSION=$(grep '^version' Cargo.toml | sed -n 's/version = "\(.*\)"/\1/p')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Package Application
+        id: package
+        shell: bash
+        run: |
+          # Determine the executable path and extension based on the OS.
+          EXECUTABLE_PATH="target/${{ matrix.target }}/release-native/${{ env.BINARY_NAME }}"
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            EXECUTABLE_PATH="${EXECUTABLE_PATH}.exe"
+          fi
+
+          # Create a staging directory for packaging.
+          STAGING_DIR="staging"
+          mkdir -p "${STAGING_DIR}"
+
+          # Copy assets and the executable to the staging directory.
+          cp -r assets "${STAGING_DIR}/"
+          cp "${EXECUTABLE_PATH}" "${STAGING_DIR}/"
+
+          # Create the final zip archive.
+          ARCHIVE_NAME="${{ env.BINARY_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.asset_name_suffix }}.zip"
+          cd "${STAGING_DIR}"
+          zip -r "../${ARCHIVE_NAME}" .
+          cd ..
+
+          # Set the archive name as an output for the next step.
+          echo "artifact_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact_name }}
+          path: ${{ steps.package.outputs.artifact_name }}
+
+  # The 'release' job creates a GitHub Release after all builds are complete.
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write # Required to create a release and upload assets.
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          # The pattern matches all artifacts uploaded by the build jobs.
+          pattern: crabby-bird-*.zip
+          merge-multiple: true
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          # This will use the tag that triggered the workflow as the release name
+          # and will use the commit message for the release body.
+          files: artifacts/*.zip

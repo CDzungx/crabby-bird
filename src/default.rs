@@ -2,6 +2,7 @@ use bevy::{prelude::*, window::PresentMode};
 
 pub const WINDOW_WIDTH: f32 = 800.;
 pub const WINDOW_HEIGHT: f32 = 512.;
+pub const GRAVITY: f32 = 65.;
 // Sets up the default plugins like windows, assets, etc
 
 pub(super) fn plugin(app: &mut App) {

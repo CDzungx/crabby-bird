@@ -1,39 +1,16 @@
 use bevy::prelude::*;
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct Game {
     pub score: u32,
-    pub state: GameState,
 }
 
-#[derive(PartialEq)]
+#[derive(States, PartialEq, Clone, Copy, Debug, Default, Hash, Eq)]
 pub enum GameState {
+    #[default]
     Inactive,
     Active,
     GameOver,
-}
-
-impl Default for GameState {
-    fn default() -> Self {
-        GameState::Inactive
-    }
-}
-
-impl Default for Game {
-    fn default() -> Self {
-        Self {
-            score: 0,
-            state: GameState::Inactive,
-        }
-    }
-}
-
-pub fn is_game_active(game: Res<Game>) -> bool {
-    game.state == GameState::Active
-}
-
-pub fn is_game_not_active(game: Res<Game>) -> bool {
-    game.state != GameState::Active
 }
 
 #[derive(Resource)]
@@ -69,9 +46,13 @@ impl GameSpeed {
 }
 
 pub(super) fn plugin(app: &mut App) {
-    app.init_resource::<Game>()
+    app.init_state::<GameState>()
+        .init_resource::<Game>()
         .init_resource::<GameSpeed>()
-        .add_systems(Update, update_game_speed);
+        .add_systems(
+            Update,
+            update_game_speed.run_if(in_state(GameState::Active)),
+        );
 }
 
 fn update_game_speed(mut game_speed: ResMut<GameSpeed>, time: Res<Time>) {

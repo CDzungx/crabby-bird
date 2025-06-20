@@ -10,17 +10,18 @@ A Flappy Bird clone built with [Bevy](https://bevyengine.org/) (0.16.1) with a h
 
 ### To-do
 
-- [ ] Score/money system
+- [x] Basic gameplay
+- [ ] Menu
+- [ ] Leaderboards
+- [ ] Money system
 - [ ] Obstacles
 - [ ] More backgrounds, birds, pipes, etc.
-- [ ] Menu
 - [ ] Special abilities
 - [ ] Sound effects
 - [ ] Music
 - [ ] Settings
 - [ ] Save/load slots
 - [ ] Achievements
-- [ ] Leaderboards
 
 ### Thanks to
 

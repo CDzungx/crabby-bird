@@ -7,6 +7,9 @@ pub struct Background;
 pub struct Ground;
 
 #[derive(Component)]
+pub struct Ceiling;
+
+#[derive(Component)]
 pub struct GameOverText;
 
 #[derive(Component)]
@@ -28,3 +31,12 @@ pub struct LowerPipe;
 
 #[derive(Component)]
 pub struct PipePair;
+
+#[derive(Component)]
+pub struct ScoreSensor;
+
+#[derive(Component)]
+pub struct Collidable;
+
+#[derive(Component)]
+pub struct Scrolling;

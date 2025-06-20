@@ -3,13 +3,13 @@ use bevy::prelude::*;
 mod components;
 mod debug;
 mod default;
-mod dev_tools;
 mod game;
+mod game_state;
 mod input;
 mod physics;
+mod pipes;
 mod resources;
 mod scene;
-mod utils;
 
 pub struct AppPlugin;
 
@@ -22,6 +22,8 @@ impl Plugin for AppPlugin {
             input::plugin,
             game::plugin,
             resources::plugin,
+            pipes::plugin,
+            game_state::plugin,
         ));
 
         // Enable dev tools for dev builds.

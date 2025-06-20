@@ -1,17 +1,16 @@
 [package]
 name = "crabby-bird"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
-license = "LICENSE.txt"
+license = "LICENSE.md"
 publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.16", features = ["wayland"] }
+bevy = { version = "0.16", features = ["wayland", "track_location"] }
 avian2d = { git = "https://github.com/Jondolf/avian", branch = "main" }
 rand = "0.9"
-bevy_rand = { version = "0.11", features = ["rand_chacha", "wyrand"] }
 
 log = { version = "*", features = [
     "max_level_debug",
@@ -25,21 +24,17 @@ tracing = { version = "0.1", features = [
 
 [features]
 default = [
-    # Default to a native dev build.
-    "dev_native",
+    # Default to a native build with hot-reloading.
+    "native",
 ]
+# Features for native builds.
+native = ["bevy/file_watcher", "bevy/embedded_watcher"]
+# Features for development builds.
 dev = [
     # Improve compile times for dev builds by linking Bevy as a dynamic library.
     "bevy/dynamic_linking",
     "bevy/bevy_dev_tools",
     "bevy/bevy_ui_debug",
-]
-dev_native = [
-    "dev",
-    # Enable asset hot reloading for native dev builds.
-    "bevy/file_watcher",
-    # Enable embedded asset hot reloading for native dev builds.
-    "bevy/embedded_watcher",
 ]
 
 [lints.clippy]
@@ -85,5 +80,7 @@ strip = "debuginfo"
 inherits = "release"
 # Optimize with performance in mind.
 opt-level = 3
-# Keep debug information in the binary.
-strip = "none"
+# Enable full link-time optimization for better performance.
+lto = "fat"
+# Strip all symbols from the binary for a smaller size.
+strip = true

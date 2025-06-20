@@ -3,7 +3,7 @@ use bevy::{asset::AssetServer, prelude::*, sprite::Anchor};
 
 use crate::{
     components::*,
-    default::{WINDOW_HEIGHT, WINDOW_WIDTH},
+    default::{GRAVITY, WINDOW_HEIGHT, WINDOW_WIDTH},
 };
 
 #[derive(Component)]
@@ -11,24 +11,34 @@ use crate::{
 pub struct MainCamera;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(Startup, initialize_camera);
+    app.add_systems(Startup, initialize_scene);
 }
 
-fn initialize_camera(
+fn initialize_scene(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let font = asset_server.load("fonts/editundo.ttf");
-    let text_font = TextFont {
-        font: font.clone(),
-        ..Default::default()
-    };
 
-    commands.spawn(MainCamera);
+    // Spawn all game entities
+    commands.spawn(camera_bundle());
+    commands.spawn(background_bundle(&asset_server));
+    commands.spawn(ground_bundle(&asset_server));
+    commands.spawn(ceiling_bundle());
+    commands.spawn(bird_bundle(&asset_server, &mut texture_atlas_layouts));
 
-    // Spawn tiled background
-    commands.spawn((
+    // Spawn UI elements as a group
+    commands.spawn(ui_bundle(&font));
+}
+
+// Bundle functions for better organization
+fn camera_bundle() -> impl Bundle {
+    MainCamera
+}
+
+fn background_bundle(asset_server: &AssetServer) -> impl Bundle {
+    (
         Sprite {
             image: asset_server.load("textures/background.png"),
             image_mode: SpriteImageMode::Tiled {
@@ -40,11 +50,15 @@ fn initialize_camera(
             ..Default::default()
         },
         Transform::from_translation(Vec3::new(0.0, 0.0, -5.0)),
+        RigidBody::Kinematic,
+        LinearVelocity::ZERO,
         Background,
-    ));
+        Scrolling,
+    )
+}
 
-    // Spawn tiled ground
-    commands.spawn((
+fn ground_bundle(asset_server: &AssetServer) -> impl Bundle {
+    (
         Sprite {
             image: asset_server.load("textures/base.png"),
             image_mode: SpriteImageMode::Tiled {
@@ -56,13 +70,30 @@ fn initialize_camera(
             ..Default::default()
         },
         Transform::from_translation(Vec3::new(0.0, -WINDOW_HEIGHT / 2.0, -1.0)),
-        RigidBody::Static,
+        RigidBody::Kinematic,
         Collider::rectangle(WINDOW_WIDTH, 100.0),
         Ground,
-    ));
+        Collidable,
+        Scrolling,
+    )
+}
 
-    // Bird spawn
-    commands.spawn((
+fn ceiling_bundle() -> impl Bundle {
+    (
+        // The ceiling is an invisible static body at the top of the screen
+        Transform::from_translation(Vec3::new(0.0, WINDOW_HEIGHT / 2.0, 0.0)),
+        RigidBody::Static,
+        Collider::rectangle(WINDOW_WIDTH, 1.0),
+        Ceiling,
+        Collidable,
+    )
+}
+
+fn bird_bundle(
+    asset_server: &AssetServer,
+    texture_atlas_layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
+) -> impl Bundle {
+    (
         Sprite {
             image: asset_server.load("textures/bird.png"),
             texture_atlas: Some(TextureAtlas {
@@ -81,43 +112,34 @@ fn initialize_camera(
         RigidBody::Dynamic,
         Collider::circle(16.0),
         LinearVelocity::ZERO,
-        GravityScale(65.0),
+        GravityScale(GRAVITY),
         Bird {
             timer: Timer::from_seconds(0.2, TimerMode::Repeating),
         },
-    ));
+    )
+}
 
-    // Upper Pipe
-    commands.spawn((
-        Sprite {
-            image: asset_server.load("textures/pipe.png"),
-            flip_y: true,
+fn ui_bundle(font: &Handle<Font>) -> impl Bundle {
+    (
+        // Root UI container with proper visibility components
+        Transform::from_translation(Vec3::ZERO),
+        Visibility::Inherited,
+        children![
+            score_text_bundle(font),
+            game_over_text_bundle(font),
+            press_spacebar_text_bundle(font),
+        ],
+    )
+}
+
+fn score_text_bundle(font: &Handle<Font>) -> impl Bundle {
+    (
+        Text2d::new("0"),
+        TextFont {
+            font: font.clone(),
+            font_size: 40.0,
             ..Default::default()
         },
-        Transform::from_translation(Vec3::new(350.0, WINDOW_HEIGHT / 2.0, -3.0)),
-        RigidBody::Kinematic,
-        Collider::rectangle(52.0, 320.0),
-        LinearVelocity(Vec2::new(-150.0, 0.0)),
-        UpperPipe,
-    ));
-
-    // Lower Pipe
-    commands.spawn((
-        Sprite {
-            image: asset_server.load("textures/pipe.png"),
-            ..Default::default()
-        },
-        Transform::from_translation(Vec3::new(350.0, -WINDOW_HEIGHT / 2.0, -3.0)),
-        RigidBody::Kinematic,
-        Collider::rectangle(52.0, 320.0),
-        LinearVelocity(Vec2::new(-150.0, 0.0)),
-        LowerPipe,
-    ));
-
-    // Score Text
-    commands.spawn((
-        Text2d::new("1000"),
-        text_font.clone().with_font_size(40.0),
         TextLayout::default(),
         Anchor::CenterLeft,
         Transform::from_translation(Vec3::new(
@@ -126,24 +148,34 @@ fn initialize_camera(
             1.0,
         )),
         ScoreText,
-    ));
+    )
+}
 
-    // Gameover Text
-    commands.spawn((
+fn game_over_text_bundle(font: &Handle<Font>) -> impl Bundle {
+    (
         Text2d::new("Game Over"),
-        text_font.clone().with_font_size(50.0),
+        TextFont {
+            font: font.clone(),
+            font_size: 50.0,
+            ..Default::default()
+        },
         TextLayout::default(),
         Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         Visibility::Hidden,
         GameOverText,
-    ));
+    )
+}
 
-    // Press Spacebar Text
-    commands.spawn((
+fn press_spacebar_text_bundle(font: &Handle<Font>) -> impl Bundle {
+    (
         Text2d::new("Press Spacebar"),
-        text_font.clone().with_font_size(40.0),
+        TextFont {
+            font: font.clone(),
+            font_size: 40.0,
+            ..Default::default()
+        },
         TextLayout::default(),
         Transform::from_translation(Vec3::new(0.0, 50.0, 0.0)),
         PressSpacebarText,
-    ));
+    )
 }
