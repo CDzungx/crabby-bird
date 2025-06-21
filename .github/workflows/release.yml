@@ -97,9 +97,13 @@ jobs:
 
           # Create the final zip archive.
           ARCHIVE_NAME="${{ env.BINARY_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.asset_name_suffix }}.zip"
-          cd "${STAGING_DIR}"
-          zip -r "../${ARCHIVE_NAME}" .
-          cd ..
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            powershell -Command "Compress-Archive -Path staging/* -DestinationPath ${ARCHIVE_NAME}"
+          else
+            cd "${STAGING_DIR}"
+            zip -r -9 "../${ARCHIVE_NAME}" .
+            cd ..
+          fi
 
           # Set the archive name as an output for the next step.
           echo "artifact_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
